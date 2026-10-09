@@ -1,0 +1,26 @@
+{% macro station_href(key) %}{% if filters.state == key %}/{{ ('?' ~ filters.rest) if filters.rest else '' }}{% else %}/?state={{ key }}{{ ('&' ~ filters.rest) if filters.rest else '' }}{% endif %}{% endmacro %}
+<div id="banner" class="banner" {% if with_banner %}hx-swap-oob="true"{% endif %}{% if not (queue.stalled or snapshot.llm.ok is sameas false or not snapshot.knowledge.loaded) %} hidden{% endif %}>
+  {% if queue.stalled %}<p><svg class="pg" aria-hidden="true"><use href="#pg-warn"/></svg>最も古い待ちが {{ queue.oldest_waiting_sec|duration }}になっている。LLM とトンネルの状態を確かめる。</p>{% endif %}
+  {% if snapshot.llm.ok is sameas false %}<p><svg class="pg" aria-hidden="true"><use href="#pg-warn"/></svg>LLM に届いていない: {{ snapshot.llm.detail }}</p>{% endif %}
+  {% if not snapshot.knowledge.loaded %}<p><svg class="pg" aria-hidden="true"><use href="#pg-warn"/></svg>知識の束がない: {{ snapshot.knowledge.detail }}。解析は束がないと始まらない。</p>{% endif %}
+</div>
+<nav class="rail" id="rail" aria-label="解析パイプライン" data-day="{{ rail.day }}">
+  <a class="station" href="{{ station_href('wait') }}" aria-pressed="{{ 'true' if filters.state == 'wait' else 'false' }}">
+    <span class="tile" data-u="none"><svg class="pg" aria-hidden="true"><use href="#pg-wait"/></svg></span>
+    <span><span class="st-top"><b class="num">{{ rail.waiting }}</b><span class="name">処理待ち</span></span><span class="sub">{{ rail.waiting_sub }}</span></span>
+  </a>
+  <span class="track{% if rail.running %} run{% endif %}" style="--p:{{ rail.running_percent }}%" aria-hidden="true"><i style="--x:38%"></i>{% if not rail.running %}<i style="--x:66%"></i>{% endif %}</span>
+  <a class="station" href="{{ station_href('run') }}" aria-pressed="{{ 'true' if filters.state == 'run' else 'false' }}">
+    <span class="tile{% if rail.running %} is-brand{% else %}" data-u="none{% endif %}"><svg class="pg" aria-hidden="true"><use href="#pg-scan"/></svg></span>
+    <span><span class="st-top"><b class="num">{{ rail.running }}</b><span class="name">解析中</span></span><span class="sub"{% if rail.running_id %} data-progress-text="{{ rail.running_id }}" data-progress-kind="rail"{% endif %}>{{ rail.running_sub }}</span></span>
+  </a>
+  <span class="track" aria-hidden="true"><i style="--x:50%"></i></span>
+  <a class="station" href="{{ station_href('done') }}" aria-pressed="{{ 'true' if filters.state == 'done' else 'false' }}">
+    <span class="tile is-ok"><svg class="pg" aria-hidden="true"><use href="#pg-done"/></svg></span>
+    <span><span class="st-top"><b class="num">{{ rail.done }}</b><span class="name">解析済み</span></span><span class="sub">{{ rail.done_sub }}</span></span>
+  </a>
+  <span class="branch">
+    <a class="side{% if rail.failed %} has-fail{% endif %}" href="{{ station_href('fail') }}" aria-pressed="{{ 'true' if filters.state == 'fail' else 'false' }}"><svg class="pg" aria-hidden="true"><use href="#pg-fail"/></svg><b>{{ rail.failed }}</b>失敗</a>
+    <a class="side" href="{{ station_href('skip') }}" aria-pressed="{{ 'true' if filters.state == 'skip' else 'false' }}"><svg class="pg" aria-hidden="true"><use href="#pg-skip"/></svg><b>{{ rail.skipped }}</b>対象外</a>
+  </span>
+</nav>

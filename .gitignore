@@ -1,0 +1,42 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.pytest_cache/
+dist/
+/config/knowledge/
+/secrets/
+data/
+backups/
+*.sqlite
+*.sqlite-*
+llm-bench-*.txt
+screenshots/
+# deploy/.gitignore keeps dist/ and config/knowledge/ out; the local stack creates these keys
+/deploy/local/secrets/probe_ssh_key
+/deploy/local/secrets/probe_ssh_key.pub
+/deploy/local/secrets/vm_host_key
+/deploy/local/secrets/vm_host_key.pub
+/deploy/local/secrets/probes_known_hosts
+# host keys are collected at deployment time, never committed
+probes_known_hosts
+known_hosts
+
+# not part of the published tree
+RELEASE-CHECKLIST.md
+/deploy/local/data/
+/deploy/local/backups/
+*.log
+*.tgz
+*.tar.gz
+*.whl
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

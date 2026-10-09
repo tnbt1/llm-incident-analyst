@@ -1,0 +1,106 @@
+# 手元の通しの設定。配置用の deploy/config/analyzer.yaml に、短い間隔と http の Cookie を重ねたもの。
+# knowledge はナレッジの設定。値の意味は docs/knowledge.md。場所は、実行する場所からの相対か絶対で書く。
+knowledge:
+  source_dir: /config/source-not-mounted   # 監視 VM に出典はない。束は管理 PC で作って送る（tools/ship-knowledge.sh）
+  bundle_dir: /config/knowledge            # 束の置き場所。読み取り専用で渡す
+  recipe: /config/knowledge.yaml           # 束の作り方
+  mode: selection                          # selection = 該当節を選ぶ、full = 全文を先頭に置く
+  card_budget_tokens: 6000
+  section_budget_tokens: 3000
+  max_sections: 3
+  stale_after_days: 30
+  reload_check_sec: 60         # 束の入れ替えを確かめる間隔
+zabbix:
+  min_severity: 2        # 2 = Warning
+  hold_sec: 2            # 束ね判定の待ち。手元は短く
+  fetch_min_severity: 1  # 1 = Information。これ以上を取得し、min_severity 未満は対象外として残す。書かなければ 1 と min_severity の小さい方
+  poll_interval_sec: 5
+  page_size: 200         # 1 回の要求で受け取る件数
+  max_pages: 10          # 1 回の収集で読むページ数
+wazuh:
+  min_level: 10
+  named_rules: [100101, 5710, 5712, 5716, 5720, 550, 553, 554, 5402, 5901, 5902]
+  hold_sec: 2
+  poll_interval_sec: 5
+  page_size: 200
+  max_pages: 10
+  tiebreak_field: id     # 同じ時刻のアラートの順序を決める項目
+intake:
+  recurrence_window_sec: 1800
+  followup_after_sec: 7200
+  skip_resolved_after_sec: 21600
+grouping:
+  storm_count: 5
+  storm_window_sec: 300
+  root_host: example-router01
+queue:
+  retry_delays_sec: [60, 300, 900]
+collector:
+  tick_sec: 1                # 整理と、収集の時刻の確認の間隔
+  first_lookback_sec: 3600   # 初回にさかのぼる長さ
+  overlap_sec: 120           # 前回位置から重ねて読む長さ。検索に遅れて現れるアラートを拾う
+  connect_timeout_sec: 5
+  timeout_sec: 10
+  backoff_max_sec: 600       # 失敗が続いたときの待ちの上限
+  auth_backoff_sec: 900      # 認証に失敗したときの待ち
+  max_response_mb: 16        # 1 回の応答の大きさの上限
+llm:
+  model: example/model-27b   # 要求の model。TIA_LLM_MODEL で上書きできる
+  temperature: 0.2
+  retry_temperature: 0.0    # 検証に失敗して作り直すときの値
+  max_tokens: 1200
+  timeout_sec: 240          # 1 回の要求の全体。Open WebUI の上流への待ち(300 秒)より短くする
+  connect_timeout_sec: 5
+  max_response_mb: 4
+  thinking: false           # 要求ごとに enable_thinking を指定する。サーバーの既定は変えない
+  allow_other_route: false  # 宛先は Open WebUI の中継経路（URL の末尾が /openai）。別の経路を使うときだけ true
+  context_tokens: 131072    # llama-server の文脈長。入力の上限と出力の上限の合計がこれを超えない
+context:
+  input_budget_tokens: 15600
+  rules_budget_tokens: 500
+  cases_budget_tokens: 900
+  cases_max: 3
+  stats_budget_tokens: 200
+  dynamic_budget_tokens: 5000       # アラート、経過、確認の結果
+  history_days: 7           # 同じホストの最近のインシデントをさかのぼる日数
+  history_max: 10
+  stats_window_days: 30     # 同じ指紋の過去の回数と復旧の統計をさかのぼる日数
+  token_margin_percent: 10  # 見積もりの誤差の分だけ、上限より手前で止める
+worker:
+  enabled: true             # 解析のワーカーを動かすか。段階 2（収集だけ）では false
+  idle_sec: 2               # 待ちが空のときに次を見るまでの間隔
+  progress_every_chunks: 25 # 受け取った断片が何個増えるごとに進捗を保存するか
+  backoff_min_sec: 5        # LLM に届かない、断られる、相手の誤りのときの最初の待ち。倍々で延びる
+  backoff_max_sec: 600      # 待ちの上限
+  auth_backoff_sec: 900     # 認証の誤り（鍵の間違い）のときの待ち
+web:
+  host: 0.0.0.0             # コンテナの中の待受。外には Caddy だけが公開する
+  port: 8000
+  system_name: Incident Analyst   # 画面の左上と <title> に出す名前
+  timezone: Asia/Tokyo      # 画面に表示する時刻の時間帯
+  sse_poll_sec: 1           # 変化を見に行く間隔
+  sse_max_sec: 600          # 1 本の接続を閉じてつなぎ直させるまでの秒数
+  health_interval_sec: 5    # LLM と知識の束を確かめる間隔
+  stall_warn_sec: 600       # 待ちがこれを超えたら最上段に警告を出す
+  max_rows: 500             # 一覧に出す行の上限
+  min_free_mb: 200          # 保存先の空きがこれを下回ったら異常にする
+  cookie_secure: false      # 手元は http。配置先では true
+retention:
+  incident_days: 180        # インシデント、解析、経過を残す日数
+  payload_days: 90          # 元アラートの本文と、渡した文脈を残す日数
+  skipped_days: 14          # 対象外を残す日数
+backup:
+  dir: /backups             # 世代ごとのフォルダを作る場所
+  keep: 7                   # 残す世代の数
+  at: "04:30"               # 取る時刻。web.timezone の時計。引用符で囲む
+housekeeping:
+  retention_at: "04:40"     # 保持期間の整理の時刻
+probes:
+  enabled: true             # 推論の前に、読み取りだけの確認を VM・Zabbix・Wazuh に行う。鍵がなければ警告して無効
+  total_budget_sec: 30      # 1 回の解析で確認に使う時間の全体
+  timeout_sec: 10           # 確認 1 件の上限。カタログの値がこれより小さければそちら
+  output_cap_bytes: 4096    # 確認 1 件の出力の上限。カタログの値がこれより小さければそちら
+  ssh_user: analyst-probe      # VM 側の確認専用の利用者
+  catalog: /config/probes.yaml
+  known_hosts: /config/probes_known_hosts
+  key_file: /run/secrets/probe_ssh_key   # 秘密鍵。コンテナには secrets で渡す

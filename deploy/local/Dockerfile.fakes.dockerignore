@@ -1,0 +1,14 @@
+# 偽のサーバーの画像には tests/ と tools/ が要る。配置用の画像の .dockerignore とは別
+.git
+.worktrees
+.venv
+.superpowers
+__pycache__
+*.pyc
+docs
+deploy
+data
+backups
+secrets
+*.sqlite
+*.sqlite-*

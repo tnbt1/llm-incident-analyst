@@ -1,0 +1,171 @@
+#!/usr/bin/python3
+"""VM 側の確認の実行器。sshd の ForceCommand から呼ばれ、SSH_ORIGINAL_COMMAND の名前 1 語だけを受ける。
+
+名前が下の表にあれば、表の固定のコマンドをシェルを通さずに動かし、出力を上限で切って返す。
+表にない名前、2 語以上、長すぎる文字列は何もせずに断る。利用者 analyst-probe はこの実行器しか動かせず、
+sudo -n は /etc/sudoers.d/analyst-probe に書いた読み取りのコマンドにだけ通る。
+
+VM ごとの差は /etc/analyst-probe.conf（root が置く、KEY=VALUE）から読む:
+  ROLES=docker または ROLES=frr（複数は , 区切り）
+  GUARD_TABLE=<ゲスト FW の表の名前>
+  COMPOSE=<docker compose のファイル。docker のある VM だけ>
+
+終了コード: 0 成功、2 断り（名前が表にない、この VM にはない）、3 時間切れ、4 失敗（コマンドが 0 以外で終わった）。
+本体の置き場所は /usr/local/lib/analyst-probe/run。解析基盤のカタログ config/probes.yaml と同じ名前を持つ。
+"""
+import json
+import os
+import re
+import signal
+import subprocess
+import sys
+import tempfile
+
+CONF = os.environ.get("TIA_PROBE_CONF", "/etc/analyst-probe.conf")
+# 解析基盤が 1 件に待つ時間（probes.timeout_sec、既定 10 秒）より少し長いだけにする。解析基盤が諦めた後に sudo journalctl を
+# 残さないため。tests/test_probe_executor.py が設定との関係を固定する
+TIMEOUT = int(os.environ.get("TIA_PROBE_TIMEOUT", "15"))
+CAP = int(os.environ.get("TIA_PROBE_CAP", "65536"))
+NAME = re.compile(r"[a-z][a-z0-9_]{0,39}")
+TRUNCATED = "\n…（切り詰めた）\n"
+SUDO = ["sudo", "-n"]
+
+# 名前 → {"stages": [argv, ...]（左から右へ pipe でつなぐ）, "roles": 要る役割}。{compose} と {guard_table} は conf の値
+TABLE = {
+    "uptime_load": {"stages": [["uptime"]]},
+    "disk": {"stages": [["df", "-h", "{existing:/,/var/lib/docker,/home}"]]},
+    "memory": {"stages": [["free", "-m"]]},
+    "failed_units": {"stages": [["systemctl", "--failed", "--no-pager", "--plain"]]},
+    "compose_ps": {"stages": [SUDO + ["docker", "compose", "-f", "{compose}", "ps", "-a"]], "roles": ["docker"]},
+    "warnings_1h": {"stages": [SUDO + ["journalctl", "-p", "warning", "--since", "-1h", "--no-pager", "-o", "short",
+                                       "--no-hostname"], ["tail", "-n", "30"]]},
+    # OpenSSH 9.8 以降（Ubuntu 26.04）は認証を sshd-session が記録する。同じ欄の 2 値は OR。確認と転送の利用者自身は除く
+    "logins": {"stages": [SUDO + ["journalctl", "_COMM=sshd", "_COMM=sshd-session", "--since", "-24h", "--no-pager",
+                                  "-o", "short", "--no-hostname"], ["grep", "-E", "Accepted|Failed|Invalid"],
+                          ["grep", "-Ev", "analyst-probe|monitor-tunnel"], ["tail", "-n", "20"]]},
+    "listening": {"stages": [SUDO + ["ss", "-ltnup"]]},
+    "guard_counters": {"stages": [SUDO + ["nft", "list", "chain", "inet", "{guard_table}", "input"]]},
+    "accounts": {"stages": [["getent", "passwd"], ["awk", "-F:", "$3>=1000 || $3==0"]]},
+    "docker_events_1h": {"stages": [SUDO + ["docker", "events", "--since", "1h", "--until", "1s"]], "roles": ["docker"]},
+    "ipsec_status": {"stages": [SUDO + ["swanctl", "--list-sas"]], "roles": ["frr"]},
+    "routes": {"stages": [SUDO + ["vtysh", "-c", "show ip route summary"]], "roles": ["frr"]},
+}
+
+
+def read_conf(path):
+    conf = {}
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                conf[key.strip()] = value.strip()
+    except OSError:
+        pass
+    return conf
+
+
+def table():
+    """試験のときだけ、環境変数の JSON ファイルで表に項目を足す。sshd は利用者の環境を渡さないので実環境では効かない。"""
+    extra = os.environ.get("TIA_PROBE_TABLE_OVERRIDE")
+    if not extra:
+        return TABLE
+    with open(extra, encoding="utf-8") as handle:
+        merged = dict(TABLE)
+        merged.update(json.load(handle))
+        return merged
+
+
+def refuse(reason):
+    sys.stderr.write(reason + "\n")
+    return 2
+
+
+def resolve(argv, conf):
+    """穴を conf の値で埋める。{existing:a,b} は存在する場所だけに広げる。"""
+    out = []
+    for word in argv:
+        if word.startswith("{existing:") and word.endswith("}"):
+            out.extend(p for p in word[len("{existing:"):-1].split(",") if os.path.isdir(p))
+            continue
+        if word == "{compose}":
+            word = conf.get("COMPOSE", "")
+        elif word == "{guard_table}":
+            word = conf.get("GUARD_TABLE", "")
+        if not word:
+            return None
+        out.append(word)
+    return out
+
+
+def run(stages, timeout, cap):
+    """段を pipe でつないで動かす。標準エラーは 1 つのファイルに集め、出力の後ろに添える。"""
+    procs = []
+    with tempfile.TemporaryFile() as errors:
+        previous = subprocess.DEVNULL
+        for argv in stages:
+            try:
+                proc = subprocess.Popen(argv, stdin=previous, stdout=subprocess.PIPE, stderr=errors,
+                                        start_new_session=True, env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin",
+                                                                     "LANG": "C.UTF-8"})
+            except OSError as exc:
+                for started in procs:
+                    kill(started)
+                return "コマンドを動かせない: %s（%s）\n" % (argv[0], exc.strerror or type(exc).__name__), False, 4
+            if previous is not subprocess.DEVNULL:
+                previous.close()
+            previous = proc.stdout
+            procs.append(proc)
+        try:
+            output, _ = procs[-1].communicate(timeout=timeout)
+            timed_out = False
+        except subprocess.TimeoutExpired:
+            output, timed_out = b"", True
+        for proc in procs:
+            kill(proc)
+            proc.wait()
+        errors.seek(0)
+        output += errors.read()
+    text = output.decode("utf-8", errors="replace")
+    if len(output) > cap:
+        text = output[:cap].decode("utf-8", errors="replace") + TRUNCATED
+    # どの段が失敗しても失敗（シェルの pipefail と同じ）。sudo -n が断られたのを tail の 0 で隠さない
+    code = next((proc.returncode for proc in procs if proc.returncode != 0), 0)
+    return text, timed_out, code
+
+
+def kill(proc):
+    if proc.poll() is None:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except OSError:
+            pass
+
+
+def main():
+    requested = os.environ.get("SSH_ORIGINAL_COMMAND", "").strip()
+    if len(requested) > 40 or not NAME.fullmatch(requested):
+        return refuse("確認の名前を 1 語で書く")
+    entry = table().get(requested)
+    if entry is None:
+        return refuse("表にない確認: " + requested)
+    conf = read_conf(CONF)
+    roles = set(filter(None, conf.get("ROLES", "").split(",")))
+    if not set(entry.get("roles", [])) <= roles:
+        return refuse("この VM にはない確認: " + requested)
+    stages = [resolve(argv, conf) for argv in entry["stages"]]
+    if any(argv is None for argv in stages):
+        return refuse("この VM の設定にない値を使う確認: " + requested)
+    text, timed_out, code = run(stages, TIMEOUT, CAP)
+    sys.stdout.write(text)
+    sys.stdout.flush()
+    if timed_out:
+        sys.stderr.write(f"{TIMEOUT} 秒で打ち切った\n")
+        return 3
+    return 0 if code == 0 else 4
+
+
+if __name__ == "__main__":
+    sys.exit(main())

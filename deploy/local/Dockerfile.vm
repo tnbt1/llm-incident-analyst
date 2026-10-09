@@ -1,0 +1,30 @@
+# 手元の通しで監視対象の VM の代わりをする箱。sshd、sudo、確認の実行器を、配置の道具が本物の VM に置くのと同じ形で持つ。
+# 実環境には置かない。docker も動く systemd もないので、compose_ps や failed_units は「失敗」で終わる（それも確認の結果のうち）。
+FROM ubuntu:24.04
+RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+    openssh-server sudo python3 iproute2 nftables systemd >/dev/null && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /run/sshd /usr/local/lib/analyst-probe \
+ && useradd --system --user-group --home-dir /var/lib/analyst-probe --create-home --shell /bin/sh analyst-probe \
+ && install -d -o analyst-probe -g analyst-probe -m 700 /var/lib/analyst-probe/.ssh \
+ && printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/10-local.conf \
+ && printf 'ROLES=docker\nGUARD_TABLE=example_app01_guard\nCOMPOSE=/opt/app01/docker-compose.yml\n' > /etc/analyst-probe.conf
+COPY deploy/remote-host/analyst-probe /usr/local/lib/analyst-probe/run
+COPY deploy/remote-host/analyst-probe-sshd.conf /etc/ssh/sshd_config.d/61-analyst-probe.conf
+COPY deploy/sudoers/analyst-probe /tmp/sudoers.analyst-probe
+RUN chmod 755 /usr/local/lib/analyst-probe/run \
+ && sed -e 's#@GUARD_TABLE@#example_app01_guard#' -e 's#@COMPOSE@#/opt/app01/docker-compose.yml#' \
+        /tmp/sudoers.analyst-probe > /etc/sudoers.d/analyst-probe \
+ && chmod 440 /etc/sudoers.d/analyst-probe && visudo -c -q -f /etc/sudoers.d/analyst-probe && rm /tmp/sudoers.analyst-probe
+# 起動: 手元で作った鍵を置いてから sshd を前面で動かす（.dockerignore が deploy/local を外すので、ここに書く）
+#   /tmp/seed/ssh_host_ed25519_key  代役のホスト鍵（司令塔の probes_known_hosts と対）
+#   /tmp/seed/probe_ssh_key.pub     確認専用の利用者 analyst-probe の公開鍵
+RUN printf '%s\n' '#!/bin/sh' 'set -eu' \
+    'install -o root -g root -m 600 /tmp/seed/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key' \
+    'ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key > /etc/ssh/ssh_host_ed25519_key.pub' \
+    '{ printf "restrict "; cat /tmp/seed/probe_ssh_key.pub; } | install -o analyst-probe -g analyst-probe -m 600 /dev/stdin /var/lib/analyst-probe/.ssh/authorized_keys' \
+    'printf "HostKey /etc/ssh/ssh_host_ed25519_key\n" > /etc/ssh/sshd_config.d/05-hostkey.conf' \
+    'sshd -t' \
+    'exec /usr/sbin/sshd -D -e' > /usr/local/bin/vm-entrypoint \
+ && chmod 755 /usr/local/bin/vm-entrypoint
+EXPOSE 22
+ENTRYPOINT ["/usr/local/bin/vm-entrypoint"]

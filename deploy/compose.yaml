@@ -1,0 +1,47 @@
+# Incident Analyst の監視 VM 向けの定義。
+# 置き場所は /opt/llm-incident-analyst/compose.yaml。画像は tools/image-build.sh が作り、docker save / load で監視 VM に運ぶ。
+# 192.0.2.x、172.28.40.x は例。監視 VM の Docker ネットワークと LLM への経路に合わせて書き換える（docs/deployment.md）。
+name: llm-incident-analyst
+services:
+  analyzer:
+    image: llm-incident-analyst:${TIA_IMAGE_TAG:-0.2.0}
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    mem_limit: 512m
+    # 止める合図から 30 秒。司令塔は 25 秒で読みかけのページと実行中の解析を片付ける
+    stop_grace_period: 30s
+    # 設定の上書き。compose.yaml と同じフォルダの .env を、あればコンテナに渡す（tia config env-template が雛形を作る）。
+    # 同じ .env を Compose 自身も読む（TIA_IMAGE_TAG と下の ${...}）。environment は env_file より優先するので、
+    # 接続先も .env で変えられるように ${変数:-既定} で書く。変えた後は restart ではなく up -d で作り直す。
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TZ: Asia/Tokyo
+      TIA_LLM_URL: ${TIA_LLM_URL:-http://172.28.40.1:18080/openai}
+      TIA_ZABBIX_URL: ${TIA_ZABBIX_URL:-http://zabbix-web-apache-mysql:8080/api_jsonrpc.php}
+      TIA_WAZUH_URL: ${TIA_WAZUH_URL:-https://wazuh.indexer:9200}
+      TIA_WAZUH_USER: ${TIA_WAZUH_USER:-analyzer_ro}
+      TIA_WAZUH_CA_FILE: ${TIA_WAZUH_CA_FILE:-/config/ca/wazuh-root-ca.pem}
+    secrets: [zabbix_api_token, wazuh_indexer_password, openwebui_api_key, probe_ssh_key]
+    volumes:
+      - ./config:/config:ro
+      - ./data:/data
+      - ./backups:/backups
+    ports: ["127.0.0.1:38090:8000"]
+    networks:
+      monitoring: {ipv4_address: 172.28.40.50}
+      zabbix_frontend: {}
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "5"}}
+networks:
+  monitoring: {external: true, name: monitoring_default}
+  zabbix_frontend: {external: true, name: zabbix_frontend}
+secrets:
+  zabbix_api_token: {file: ./secrets/zabbix_api_token}
+  wazuh_indexer_password: {file: ./secrets/wazuh_indexer_password}
+  openwebui_api_key: {file: ./secrets/openwebui_api_key}
+  probe_ssh_key: {file: ./secrets/probe_ssh_key}

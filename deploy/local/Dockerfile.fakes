@@ -1,0 +1,11 @@
+# 手元の通しで監視 VM の系統の代わりをする偽のサーバー。実環境には置かない。
+FROM python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c
+RUN pip install --no-cache-dir --disable-pip-version-check "trustme>=1.1" \
+ && useradd --uid 10002 --no-create-home --shell /usr/sbin/nologin fakes \
+ && mkdir -p /shared && chown 10002 /shared
+WORKDIR /app
+COPY tests/fakes.py tests/builders.py /app/tests/
+COPY tools/fake-sources.py /app/tools/
+USER 10002
+ENV PYTHONUNBUFFERED=1
+CMD ["python", "/app/tools/fake-sources.py", "--bind", "0.0.0.0", "--ca-out", "/shared/wazuh-root-ca.pem"]

@@ -1,0 +1,16 @@
+{% set d = detail %}
+<form class="case-form" hx-post="/incidents/{{ d.id }}/case" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/case">
+  <input type="hidden" name="_token" value="{{ csrf_token }}">
+  <h3>事例として登録する</h3>
+  <p class="why">下書きは最新の解析から作ってある。人が確かめた内容に直してから登録する。登録した事例は、同じ種類の解析に渡される。</p>
+  <label>症状<textarea name="symptoms" rows="2" maxlength="600">{{ draft.symptoms }}</textarea></label>
+  <label>確定した原因<textarea name="cause" rows="3" maxlength="600" required>{{ draft.cause }}</textarea></label>
+  <label>確認の方法<textarea name="confirmation" rows="2" maxlength="600">{{ draft.confirmation }}</textarea></label>
+  <label>対処または判断<textarea name="action" rows="2" maxlength="600">{{ draft.action }}</textarea></label>
+  <fieldset><legend>解析の原因は</legend>
+    <label><input type="radio" name="verdict" value="correct" checked>正しかった</label>
+    <label><input type="radio" name="verdict" value="corrected">違っていた（上の原因に直した）</label>
+  </fieldset>
+  <input type="hidden" name="note" value="">
+  <div class="fb"><button class="btn" type="submit">事例として登録する</button><button class="btn ghost" type="button" data-close-case>やめる</button></div>
+</form>

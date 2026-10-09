@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ status }} | {{ system_name }}{% endblock %}
+{% block body %}
+<header class="app-head">
+  <div class="brand">
+    <span class="tile is-ink brand-mark"><svg class="pg" aria-hidden="true"><use href="#pg-scan"/></svg></span>
+    <div><a class="wordmark" href="/">{{ system_name }}</a></div>
+  </div>
+</header>
+<main class="inbox">
+<section class="pane">
+  <div class="empty"><b>{{ status }}　{{ message }}</b>一覧に戻るには、左上の名前を押す。</div>
+</section>
+</main>
+{% endblock %}

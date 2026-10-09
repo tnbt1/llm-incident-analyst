@@ -1,0 +1,53 @@
+<!-- ピクトグラム一式。24px 格子、塗りの形で描く。 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <!-- 解析の状態 -->
+  <symbol id="pg-wait" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="2.8" rx="1.3"/><rect x="5" y="19.2" width="14" height="2.8" rx="1.3"/><path d="M7 4.6h10v3L13.3 12l3.7 4.4v3H7v-3l3.7-4.4L7 7.6Z"/></symbol>
+  <symbol id="pg-scan" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.5 2.5a8 8 0 1 0 0 16a8 8 0 1 0 0-16ZM10.5 5.1a5.4 5.4 0 1 1 0 10.8a5.4 5.4 0 1 1 0-10.8Z"/><path class="k-s" stroke-width="3" d="M16.7 16.7L21 21"/><path class="k-s" stroke-width="1.7" d="M6.9 10.9h1.9l1.3-2.6l1.6 4.8l1-2.2h1.5"/></symbol>
+  <symbol id="pg-done" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20ZM6.4 12.3l1.9-1.9l2.3 2.3l5.1-5.1l1.9 1.9l-7 7Z"/></symbol>
+  <symbol id="pg-fail" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path class="k-c" stroke-width="2.5" d="M8.3 8.3l7.4 7.4M15.7 8.3l-7.4 7.4"/></symbol>
+  <symbol id="pg-skip" viewBox="0 0 24 24"><circle class="k-s" stroke-width="2.6" cx="12" cy="12" r="8.7"/><path class="k-s" stroke-width="2.6" d="M6.2 6.2l11.6 11.6"/></symbol>
+  <!-- インシデントの種類 -->
+  <symbol id="pg-cpu" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2.4"/><path class="k-s" stroke-width="1.9" d="M9 2.4v2M12 2.4v2M15 2.4v2M9 19.6v2M12 19.6v2M15 19.6v2M2.4 9h2M2.4 12h2M2.4 15h2M19.6 9h2M19.6 12h2M19.6 15h2"/><rect class="k-cf" x="9.3" y="9.3" width="5.4" height="5.4" rx="1.1"/></symbol>
+  <symbol id="pg-mem" viewBox="0 0 24 24"><path d="M3.6 5.6h16.8A1.6 1.6 0 0 1 22 7.2v8.4H2V7.2a1.6 1.6 0 0 1 1.6-1.6Z"/><path d="M3 15.6h5v3H3zM9.6 15.6h5.6v3H9.6zM16.8 15.6H21v3h-4.2z"/><path class="k-cf" d="M4.6 8.3h3.6v4.4H4.6zM10.2 8.3h3.6v4.4h-3.6zM15.8 8.3h3.6v4.4h-3.6z"/></symbol>
+  <symbol id="pg-disk" viewBox="0 0 24 24"><path d="M4 6.2C4 4.3 7.6 2.8 12 2.8s8 1.5 8 3.4v11.6c0 1.9-3.6 3.4-8 3.4s-8-1.5-8-3.4Z"/><path class="k-c" stroke-width="1.6" d="M4 6.8c0 1.9 3.6 3.4 8 3.4s8-1.5 8-3.4M4 12.4c0 1.9 3.6 3.4 8 3.4s8-1.5 8-3.4"/></symbol>
+  <symbol id="pg-key" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M8 6.4a5.6 5.6 0 1 0 0 11.2a5.6 5.6 0 1 0 0-11.2ZM8 9.8a2.2 2.2 0 1 1 0 4.4a2.2 2.2 0 1 1 0-4.4Z"/><path d="M12.6 10.6h8.6a.9.9 0 0 1 .9.9v.9a.9.9 0 0 1-.9.9h-.4v2.3a.8.8 0 0 1-.8.8h-.9a.8.8 0 0 1-.8-.8v-2.3H17v1.5a.8.8 0 0 1-.8.8h-.7a.8.8 0 0 1-.8-.8v-1.5h-2.1Z"/></symbol>
+  <symbol id="pg-file" viewBox="0 0 24 24"><path d="M6.2 2h7.6L20 8.2v11.6a2.2 2.2 0 0 1-2.2 2.2H6.2A2.2 2.2 0 0 1 4 19.8V4.2A2.2 2.2 0 0 1 6.2 2Z"/><path class="k-c" stroke-width="1.7" d="M13.6 2.4v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="pg-net" viewBox="0 0 24 24"><rect x="2.5" y="12.5" width="19" height="8" rx="2.4"/><path class="k-s" stroke-width="2.2" d="M7.5 12.5l-2-8M16.5 12.5l2-8"/><circle class="k-cf" cx="6.6" cy="16.5" r="1.15"/><circle class="k-cf" cx="10.4" cy="16.5" r="1.15"/><path class="k-c" stroke-width="1.6" d="M14.4 16.5H18"/></symbol>
+  <symbol id="pg-box" viewBox="0 0 24 24"><path d="M12 1.8l9 5v10.4l-9 5l-9-5V6.8Z"/><path class="k-c" stroke-width="1.6" d="M3.6 7.2l8.4 4.7l8.4-4.7M12 11.9v9.6"/></symbol>
+  <symbol id="pg-io" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.6" d="M8 20V8.5M16 4v11.5"/><path d="M3.4 9.6L8 3.2l4.6 6.4ZM11.4 14.4l4.6 6.4l4.6-6.4Z"/></symbol>
+  <symbol id="pg-swap" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.6" d="M4 8h11.5M20 16H8.5"/><path d="M14.4 3.4L20.8 8l-6.4 4.6ZM9.6 11.4L3.2 16l6.4 4.6Z"/></symbol>
+  <symbol id="pg-pkg" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.6" d="M4 14v4.6A2.4 2.4 0 0 0 6.4 21h11.2a2.4 2.4 0 0 0 2.4-2.4V14M12 16V8.5"/><path d="M7.4 9.6L12 3.2l4.6 6.4Z"/></symbol>
+  <symbol id="pg-user" viewBox="0 0 24 24"><circle cx="12" cy="7.2" r="4"/><path d="M4 21.4c0-4.6 3.5-8 8-8s8 3.4 8 8Z"/></symbol>
+  <!-- 取得元と稼働状況 -->
+  <symbol id="pg-shield" viewBox="0 0 24 24"><path d="M12 1.8l8.2 3v6.4c0 5-3.3 8.7-8.2 11c-4.9-2.3-8.2-6-8.2-11V4.8Z"/><path class="k-c" stroke-width="2" d="M8.3 11.9l2.7 2.7l4.8-5.2"/></symbol>
+  <symbol id="pg-pulse" viewBox="0 0 24 24"><rect x="2" y="3.5" width="20" height="14" rx="2.4"/><rect x="7.5" y="19" width="9" height="2.5" rx="1.2"/><path class="k-c" stroke-width="1.8" d="M4.6 10.8h3.6l1.7-3.6l2.8 6.8l1.6-3.2h5.1"/></symbol>
+  <symbol id="pg-llm" viewBox="0 0 24 24"><path class="k-s" stroke-width="1.8" d="M5 12l7-6.6l7 6.6l-7 6.6ZM12 5.4v13.2"/><circle cx="5" cy="12" r="2.7"/><circle cx="19" cy="12" r="2.7"/><circle cx="12" cy="5.2" r="2.7"/><circle cx="12" cy="18.8" r="2.7"/></symbol>
+  <symbol id="pg-tunnel" viewBox="0 0 24 24"><path d="M2.5 21v-8.5a9.5 9.5 0 0 1 19 0V21h-5.2v-8.5a4.3 4.3 0 0 0-8.6 0V21Z"/></symbol>
+  <symbol id="pg-card" viewBox="0 0 24 24"><rect x="2" y="4.5" width="20" height="15" rx="2.6"/><rect class="k-cf" x="5" y="8" width="5.2" height="5.2" rx="1.1"/><path class="k-c" stroke-width="1.6" d="M12.8 9.2h6M12.8 12.4h4.4M5.2 16h13.6"/></symbol>
+  <symbol id="pg-server" viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="7.4" rx="2"/><rect x="3" y="13.1" width="18" height="7.4" rx="2"/><circle class="k-cf" cx="6.8" cy="7.2" r="1.1"/><circle class="k-cf" cx="6.8" cy="16.8" r="1.1"/><path class="k-c" stroke-width="1.5" d="M13 7.2h5M13 16.8h5"/></symbol>
+  <!-- 詳細の見出し -->
+  <symbol id="pg-chart" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.2" d="M4 3.5V20h16.5M7.5 15.5l3.8-4.2l3 2.6l5-6.4"/></symbol>
+  <symbol id="pg-target" viewBox="0 0 24 24"><circle class="k-s" stroke-width="2.2" cx="12" cy="12" r="8.8"/><circle cx="12" cy="12" r="3.4"/></symbol>
+  <symbol id="pg-ripple" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.6"/><path class="k-s" stroke-width="2" d="M7.6 7.6a6.2 6.2 0 0 0 0 8.8M16.4 7.6a6.2 6.2 0 0 1 0 8.8M4.4 4.6a10.5 10.5 0 0 0 0 14.8M19.6 4.6a10.5 10.5 0 0 1 0 14.8"/></symbol>
+  <symbol id="pg-link" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.2" d="M10 7.5H7.5a4.5 4.5 0 0 0 0 9H10M14 7.5h2.5a4.5 4.5 0 0 1 0 9H14M8.5 12h7"/></symbol>
+  <symbol id="pg-term" viewBox="0 0 24 24"><rect x="2" y="3.5" width="20" height="17" rx="2.8"/><path class="k-c" stroke-width="1.9" d="M6.4 9l3.2 3l-3.2 3M12.4 15.2h5"/></symbol>
+  <symbol id="pg-sign" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.4" d="M12 2.4v19.2"/><path d="M9.6 3.4h8.8l3.2 3.3l-3.2 3.3H9.6ZM14.4 11.4H5.6l-3.2 3.3l3.2 3.3h8.8Z"/></symbol>
+  <symbol id="pg-ask" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path class="k-c" stroke-width="2" d="M9.2 9.3a2.9 2.9 0 1 1 4.3 2.5c-1 .6-1.5 1.2-1.5 2.4"/><circle class="k-cf" cx="12" cy="17.2" r="1.25"/></symbol>
+  <symbol id="pg-clock" viewBox="0 0 24 24"><circle class="k-s" stroke-width="2.2" cx="12" cy="12" r="8.8"/><path class="k-s" stroke-width="2.2" d="M12 7v5.2l3.3 2"/></symbol>
+  <symbol id="pg-layers" viewBox="0 0 24 24"><path d="M12 2.6l9.4 4.7L12 12L2.6 7.3Z"/><path class="k-s" stroke-width="2" d="M3.6 12.2l8.4 4.2l8.4-4.2M3.6 16.6l8.4 4.2l8.4-4.2"/></symbol>
+  <symbol id="pg-note" viewBox="0 0 24 24"><path d="M5 2.5h14A2.5 2.5 0 0 1 21.5 5v10.5L15.5 21.5H5A2.5 2.5 0 0 1 2.5 19V5A2.5 2.5 0 0 1 5 2.5Z"/><path class="k-c" stroke-width="1.7" d="M7 8h10M7 12h10M7 16h4.5M15.2 21.2v-5.6h5.9"/></symbol>
+  <!-- 操作 -->
+  <symbol id="pg-eye" viewBox="0 0 24 24"><path d="M1.6 12C3.9 7.6 7.6 5.2 12 5.2s8.1 2.4 10.4 6.8c-2.3 4.4-6 6.8-10.4 6.8S3.9 16.4 1.6 12Z"/><circle class="k-cf" cx="12" cy="12" r="3.3"/></symbol>
+  <symbol id="pg-copy" viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="12" height="14" rx="2.2"/><path class="k-s" stroke-width="2.2" d="M9 4h9.2a2.3 2.3 0 0 1 2.3 2.3V17"/></symbol>
+  <symbol id="pg-maru" viewBox="0 0 24 24"><circle class="k-s" stroke-width="2.8" cx="12" cy="12" r="8"/></symbol>
+  <symbol id="pg-batsu" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.8" d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></symbol>
+  <symbol id="pg-pen" viewBox="0 0 24 24"><path d="M15.2 4.4a2.3 2.3 0 0 1 3.2 0l1.2 1.2a2.3 2.3 0 0 1 0 3.2L9 19.4l-5.4 1.4L5 15.4Z"/><path class="k-c" stroke-width="1.6" d="M13.6 6.4l4 4"/></symbol>
+  <symbol id="pg-cycle" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.6" d="M13.9 4.8A7.5 7.5 0 1 0 19.5 12"/><path d="M19.5 6.2l3.4 6.2h-6.8Z"/></symbol>
+  <symbol id="pg-first" viewBox="0 0 24 24"><path class="k-s" stroke-width="2.6" d="M5 3.5h14M12 20.5V10"/><path d="M6.6 12.2L12 5.6l5.4 6.6Z"/></symbol>
+  <symbol id="pg-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.6"/><path class="k-s" stroke-width="2.2" d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6M5.1 5.1l1.8 1.8M17.1 17.1l1.8 1.8M18.9 5.1l-1.8 1.8M6.9 17.1l-1.8 1.8"/></symbol>
+  <symbol id="pg-moon" viewBox="0 0 24 24"><path d="M20.6 14.6A9 9 0 1 1 9.4 3.4a8.4 8.4 0 0 0 11.2 11.2Z"/></symbol>
+  <!-- 種類 service と other、警告 -->
+  <symbol id="pg-service" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6a7.7 7.7 0 0 1 1.9 1.1l2.5-.9l1.7 2.9l-2 1.7a7.8 7.8 0 0 1 0 2.2l2 1.7l-1.7 2.9l-2.5-.9a7.7 7.7 0 0 1-1.9 1.1l-.5 2.6h-3.4l-.5-2.6a7.7 7.7 0 0 1-1.9-1.1l-2.5.9l-1.7-2.9l2-1.7a7.8 7.8 0 0 1 0-2.2l-2-1.7l1.7-2.9l2.5.9a7.7 7.7 0 0 1 1.9-1.1ZM12 8.6a3.4 3.4 0 1 0 0 6.8a3.4 3.4 0 1 0 0-6.8Z"/></symbol>
+  <symbol id="pg-other" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4.5"/><circle class="k-cf" cx="12" cy="12" r="2.6"/></symbol>
+  <symbol id="pg-warn" viewBox="0 0 24 24"><path d="M12 2.6l10.2 17.8H1.8Z"/><path class="k-c" stroke-width="2.2" d="M12 9.2v5"/><circle class="k-cf" cx="12" cy="17.2" r="1.3"/></symbol>
+</defs></svg>

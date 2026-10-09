@@ -1,0 +1,20 @@
+# >>> llm-incident-analyst >>>
+# Incident Analyst の画面。管理用の経路（VPN など）からだけ届くアドレスに bind し、basic 認証を掛ける。
+# <MONITORING_VM_IP> は監視 VM の管理側のアドレス、<USER> は画面の利用者名に置き換える。
+# Host は書き換えない（画面が Origin と Host を比べる）。X-Forwarded-* は画面が見ない。
+https://<MONITORING_VM_IP>:11443 {
+    bind <MONITORING_VM_IP>
+    tls internal
+    basic_auth {
+        <USER> <bcrypt のハッシュ。`caddy hash-password` が作る>
+    }
+    reverse_proxy 127.0.0.1:38090 {
+        # SSE をためずに流す。/events の 1 本は 600 秒で閉じるので、読み取りの制限はそれより長く
+        flush_interval -1
+        transport http {
+            read_timeout 15m
+            response_header_timeout 2m
+        }
+    }
+}
+# <<< llm-incident-analyst <<<

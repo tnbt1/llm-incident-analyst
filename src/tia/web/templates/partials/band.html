@@ -1,0 +1,5 @@
+<div class="band" id="band" aria-label="{{ band.day }} のインシデント分布"><div class="band-in">
+  {% for x, label in band.ticks %}<span class="tick" style="left:{{ x }}%">{{ label }}</span>{% endfor %}
+  {% for m in band.marks %}<a class="mk {{ m.cls }}" style="--x:{{ m.x }}%;--c:{{ m.color }}" title="{{ m.title }}" href="/incidents/{{ m.id }}" hx-get="/partials/incidents/{{ m.id }}" hx-target="#pane" hx-push-url="/incidents/{{ m.id }}" aria-label="{{ m.title }}"></a>{% endfor %}
+  {% if band.now_x is not none %}<span class="nowl" style="left:{{ band.now_x }}%"><span class="nowl-label">{{ band.now_label }}</span></span>{% else %}<span class="band-day">{{ band.now_label }}</span>{% endif %}
+</div></div>

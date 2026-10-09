@@ -1,0 +1,26 @@
+# テスト用の小さな出典に合わせたレシピ。
+files:
+  - README.md
+  - architecture.md
+  - registers.md
+  - maintenance.md
+card:
+  sections:
+    - {file: architecture.md, heading: 構成の要点}
+    - {file: architecture.md, heading: VM台帳}
+    - {file: registers.md, heading: 公開ポート台帳}
+  recent_changes:
+    file: registers.md
+    heading: 変更履歴
+    days: 14
+hosts:
+  vm-router01: [FRR, 10.20.0.4]
+  vm-monitor01: [監視VM, Zabbix, Wazuh, 10.20.0.7]
+  vm-game01: [ゲームVM, 10.20.0.8]
+types:
+  disk: [ディスク, 容量]
+  net: [経路, IPsec, 疎通]
+  container: [Docker, コンテナ]
+  service: [systemd, サービス]
+  auth: [SSH, ログイン]
+prefer_headings: [状態, 確認, 切り分け, ログ]

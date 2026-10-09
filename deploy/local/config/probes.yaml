@@ -1,0 +1,137 @@
+# 手元の通しの写し。ip だけが代役の VM（172.28.41.6）。ほかは config/probes.yaml と同じ。
+# 確認（読み取りだけの照会）のカタログ。値の意味は docs/probes.md。
+#
+# probes.<名前>:
+#   where       host = VM に SSH で入り、VM 側の実行器 analyst-probe に名前だけを渡す / zabbix / wazuh = API の読み取り
+#   command     VM 側で動く固定のコマンド（表示と「実行」の照合に使う。VM 側の実行器にも同じ表が焼き込まれている）。
+#               {compose} と {guard_table} は目録の値で置き換える
+#   roles       書いたときは、その役割を持つ VM でだけ動く（frr / docker）
+#   when        段階 1（推論の前）に動かす条件。always、type:<種類>、source:<出所>。どれか 1 つ合えば動かす
+#   timeout_sec 1 件の上限。30 以下
+#   cap_bytes   出力の上限。65536 以下。超えた分は切り詰める
+#
+# hosts.<Zabbix のホスト名>: ip、guard_table（ゲスト FW の表）、compose（docker compose のファイル。ないときは null）、roles
+hosts:
+  example-router01:
+    ip: 172.28.41.6
+    guard_table: example_router_fw
+    compose: null
+    roles: [frr]
+  example-app01:
+    ip: 172.28.41.6
+    guard_table: example_app01_guard
+    compose: /opt/app01/docker-compose.yml
+    roles: [docker]
+  example-app02:
+    ip: 172.28.41.6
+    guard_table: example_app02_guard
+    compose: /opt/app02/docker-compose.yml
+    roles: [docker]
+  example-app03:
+    ip: 172.28.41.6
+    guard_table: example_app03_guard
+    compose: /opt/app03/docker-compose.yml
+    roles: [docker]
+probes:
+  uptime_load:
+    where: host
+    command: uptime
+    when: [always]
+    timeout_sec: 10
+    cap_bytes: 1024
+  disk:
+    where: host
+    command: df -h / /var/lib/docker /home
+    when: [always]
+    timeout_sec: 10
+    cap_bytes: 4096
+  memory:
+    where: host
+    command: free -m
+    when: [always]
+    timeout_sec: 10
+    cap_bytes: 1024
+  failed_units:
+    where: host
+    command: systemctl --failed --no-pager --plain
+    when: [always]
+    timeout_sec: 10
+    cap_bytes: 4096
+  compose_ps:
+    where: host
+    command: sudo -n docker compose -f {compose} ps -a
+    roles: [docker]
+    when: [type:container, type:service, type:disk]
+    timeout_sec: 15
+    cap_bytes: 4096
+  warnings_1h:
+    where: host
+    command: sudo -n journalctl -p warning --since -1h --no-pager -o short --no-hostname | tail -n 30
+    when: [always]
+    timeout_sec: 15
+    cap_bytes: 8192
+  logins:
+    where: host
+    command: sudo -n journalctl _COMM=sshd _COMM=sshd-session --since -24h --no-pager -o short --no-hostname | grep -E 'Accepted|Failed|Invalid' | grep -Ev 'analyst-probe|monitor-tunnel' | tail -n 20
+    when: [type:auth, type:user, type:file]
+    timeout_sec: 15
+    cap_bytes: 4096
+  listening:
+    where: host
+    command: sudo -n ss -ltnup
+    when: [type:service, type:net]
+    timeout_sec: 10
+    cap_bytes: 4096
+  guard_counters:
+    where: host
+    command: sudo -n nft list chain inet {guard_table} input
+    when: [type:net, type:auth]
+    timeout_sec: 10
+    cap_bytes: 8192
+  accounts:
+    where: host
+    command: "getent passwd | awk -F: '$3>=1000 || $3==0'"
+    when: [type:user, type:file, type:auth]
+    timeout_sec: 10
+    cap_bytes: 4096
+  docker_events_1h:
+    where: host
+    command: sudo -n docker events --since 1h --until 1s
+    roles: [docker]
+    when: [type:container, type:service]
+    timeout_sec: 15
+    cap_bytes: 8192
+  ipsec_status:
+    where: host
+    command: sudo -n swanctl --list-sas
+    roles: [frr]
+    when: [type:net, type:service]
+    timeout_sec: 10
+    cap_bytes: 4096
+  routes:
+    where: host
+    command: sudo -n vtysh -c 'show ip route summary'
+    roles: [frr]
+    when: [type:net]
+    timeout_sec: 10
+    cap_bytes: 4096
+  zabbix_trigger:
+    where: zabbix
+    when: [source:zabbix]
+    timeout_sec: 10
+    cap_bytes: 4096
+  zabbix_history_60m:
+    where: zabbix
+    when: [source:zabbix]
+    timeout_sec: 10
+    cap_bytes: 4096
+  zabbix_host_problems:
+    where: zabbix
+    when: [always]
+    timeout_sec: 10
+    cap_bytes: 4096
+  wazuh_recent_events:
+    where: wazuh
+    when: [source:wazuh, type:auth, type:file, type:user]
+    timeout_sec: 10
+    cap_bytes: 8192

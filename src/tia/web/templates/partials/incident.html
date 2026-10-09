@@ -1,0 +1,196 @@
+{% set d = detail %}
+{% macro icon(name) %}<svg class="pg" aria-hidden="true"><use href="#{{ name }}"/></svg>{% endmacro %}
+{% macro token() %}<input type="hidden" name="_token" value="{{ csrf_token }}">{% endmacro %}
+<article class="detail" id="detail" data-id="{{ d.id }}" data-state="{{ d.state }}" data-unread="{{ '1' if d.unread else '0' }}">
+  <header class="d-head">
+    <span class="tile" data-u="{{ d.u }}">{{ icon(d.icon) }}</span>
+    <div>
+      <p class="d-tags">
+        {%- if d.urgency %}<span class="urg" data-u="{{ d.u }}">{{ d.urgency_label }}</span>{% endif %}
+        {%- if d.kind_label %}<span class="sev">{{ d.kind_label }}</span>{% endif %}
+        <span class="d-id">{{ d.label }}</span>
+        {%- if d.members %}<span class="src jp">{{ d.members }} 件を 1 件として解析</span>{% else %}<span class="src">{{ d.source_label }}</span>{% endif %}
+        {%- if not d.urgency and d.state in ('wait', 'run') %}<span class="src jp">緊急度は解析後に決まります</span>{% endif %}
+        {%- if d.priority %}<span class="src jp">先に解析する指定</span>{% endif %}
+      </p>
+      <h1>{{ d.title }}</h1>
+      <p class="d-meta"><span class="host">{{ icon('pg-server') }}{{ d.host }}</span>
+        {%- if d.members %}<span class="more">{{ d.members }} 件</span>{% endif %}
+        {%- if d.live %}<span class="live">{{ d.live }}</span>{% elif d.healed %}<span class="healed">{% if d.problem_status == 'resolved' %}{{ icon('pg-done') }}{% endif %}{{ d.healed }}</span>{% endif %}
+        {%- if d.analysed %}<span class="why">{{ d.analysed }}</span>{% endif %}
+        {%- if d.count > 1 and not d.members %}<span class="why">再発 <b>{{ d.count }} 回</b></span>{% endif %}
+      </p>
+    </div>
+  </header>
+
+  {% if d.parent %}
+  <div class="lede"><span class="lede-k">{{ icon('pg-layers') }}束の一部</span>この件は <a href="/incidents/{{ d.parent.id }}" hx-get="/partials/incidents/{{ d.parent.id }}" hx-target="#pane" hx-push-url="/incidents/{{ d.parent.id }}">{{ d.parent.label }} {{ d.parent.title }}</a> の一部として解析される。</div>
+  {% endif %}
+
+  {% if d.state == 'run' and d.running %}
+  <section class="sec">
+    <h2 class="sec-h">{{ icon('pg-scan') }}解析の進行</h2>
+    <ol class="phases">
+      <li class="{{ 'ok' if d.running.phase != 'context' else 'on' }}">{% if d.running.phase != 'context' %}{{ icon('pg-done') }}文脈収集 完了{% else %}文脈収集{% endif %}</li>
+      <li class="{{ 'on' if d.running.phase == 'inference' else ('ok' if d.running.phase in ('validation', 'finished') else '') }}">{% if d.running.phase in ('validation', 'finished') %}{{ icon('pg-done') }}推論 完了{% else %}推論中{% endif %}</li>
+      <li class="{{ 'on' if d.running.phase == 'validation' else '' }}">検証</li>
+    </ol>
+    <div class="meter meter-big" data-progress-for="{{ d.id }}"><i style="--p:{{ d.running.percent }}%"></i></div>
+    <p class="why progress-text" data-progress-text="{{ d.id }}" data-progress-kind="detail">{{ d.running.texts(cfg.llm_max_tokens)['detail'] }}</p>
+  </section>
+  {% elif d.state == 'wait' %}
+  <div class="lede">
+    <span class="lede-k">{{ icon('pg-wait') }}{% if d.analysis_state == 'held' %}続報を束ね中{% elif d.analysis_state == 'retry_wait' %}再試行待ち{% else %}処理待ち{% endif %}</span>
+    {% if d.analysis_state == 'held' %}同じ問題の続報を少し待ってから、まとめて解析する。
+    {% elif d.analysis_state == 'retry_wait' %}前回の解析は失敗した（{{ d.why }}）。時間を置いて自動でやり直す。
+    {% elif d.position %}{% if d.position.ahead %}先行する {{ d.position.ahead }} 件の解析が終わりしだい開始する。{% else %}次に解析する。{% endif %}{% if d.position.eta %}開始見込みは {{ d.position.eta }}。{% endif %}
+    {% else %}順番待ちに入っている。{% endif %}
+  </div>
+  {% elif d.state == 'fail' %}
+  <div class="lede"><span class="lede-k">{{ icon('pg-fail') }}解析できなかった</span>{{ d.why }}。{% if d.attempt_count %}試行 {{ d.attempt_count }} 回。{% endif %}再解析するか、対象外のままにするかを選ぶ。</div>
+  {% elif d.state == 'skip' %}
+  <div class="lede"><span class="lede-k">{{ icon('pg-skip') }}対象外</span>{{ d.why }}。必要なら再解析する。</div>
+  {% endif %}
+
+  {% if d.result %}
+  <div class="lede"><span class="lede-k">{{ icon('pg-note') }}解析の要約</span>{{ d.summary or d.result.summary }}</div>
+
+  {% if d.causes %}
+  <section class="sec">
+    <h2 class="sec-h">{{ icon('pg-target') }}原因候補</h2>
+    <ol>
+      {% for c in d.causes %}
+      <li class="cause"><div class="conf" data-l="{{ c.confidence_label }}"><span><i></i><i></i><i></i></span>確度 {{ c.confidence_label }}</div><div><h3>{{ c.cause }}</h3>{% if c.evidence %}<ul class="evi"><li>{{ c.evidence|linkify }}</li></ul>{% endif %}</div></li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  <div class="cols">
+    <section class="sec"><h2 class="sec-h">{{ icon('pg-ripple') }}影響範囲</h2><ul class="plain">{% for s in d.impact.services %}<li>{{ s }}</li>{% endfor %}{% if d.impact.scope %}<li><small>{{ d.impact.scope }}</small></li>{% endif %}{% if not d.impact.services and not d.impact.scope %}<li><small>記載なし</small></li>{% endif %}</ul></section>
+    <section class="sec"><h2 class="sec-h">{{ icon('pg-link') }}関連</h2><ul class="plain">{% for s in d.correlation.incidents %}<li>{{ s }}</li>{% endfor %}{% for s in d.correlation.changes %}<li>{{ s|linkify }}</li>{% endfor %}{% if not d.correlation.incidents and not d.correlation.changes %}<li><small>関連する事項はない</small></li>{% endif %}</ul></section>
+  </div>
+
+  {% if d.checks or d.excluded %}
+  <section class="sec">
+    <h2 class="sec-h">{{ icon('pg-term') }}推奨する確認</h2>
+    {% for c in d.checks %}
+    <div class="cmd">
+      <p class="cmd-h"><b>{{ c.purpose }}</b>{% if c.where %}<span class="where">{{ icon('pg-term') }}{{ c.where }}</span>{% endif %}{% if c.verified %}<span class="ro">{{ icon('pg-eye') }}資料にある</span>{% else %}<span class="unverified">{{ icon('pg-ask') }}未検証</span>{% endif %}</p>
+      <div class="cmd-b"><code>{{ c.command }}</code><span class="cmd-acts"><button class="btn" type="button" data-copy>{{ icon('pg-copy') }}<span data-label>コピー</span></button>{% if c.probe and 'probe' in d.actions %}<form class="inline" hx-post="/incidents/{{ d.id }}/probe" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/probe">{{ token() }}<input type="hidden" name="name" value="{{ c.probe }}"><button class="btn" type="submit" hx-disabled-elt="this" title="読み取りだけの確認 {{ c.probe }} を解析基盤から実行する">{{ icon('pg-eye') }}実行</button></form>{% endif %}</span></div>
+    </div>
+    {% endfor %}
+    {% if d.excluded %}
+    {% if not d.checks %}<p class="excluded-note"><small>推奨する確認はない（{{ d.excluded|length }} 件を規則により除外）</small></p>{% endif %}
+    <ul class="plain excluded">{% for e in d.excluded %}<li><small>規則により除外した確認: {{ e.purpose }}（{{ e.reason }}）</small></li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+  {% if d.probes or d.probes_enabled %}
+  <section class="sec probes" id="probes">
+    <details class="ctx"{% if d.probes %} open{% endif %}>
+      <summary>{{ icon('pg-eye') }}確認した状態 <span class="mono">{{ d.probes|length }} 件{% if d.probes %} · 成功 {{ d.probes|selectattr('status', 'equalto', 'ok')|list|length }}{% endif %}</span></summary>
+      <p class="why">読み取りだけの確認を、解析基盤から VM・Zabbix・Wazuh に対して行った結果。解析の前に自動で取るものと、運用者が「実行」で取るものがある。</p>
+      {% macro probe_card(p) %}
+      <div class="probe" data-status="{{ p.status }}">
+        <p class="cmd-h"><b>{{ p.name }}</b><span class="where">{{ icon('pg-server') }}{{ p.target }}</span>{% if p.status == 'ok' %}<span class="ro">{{ icon('pg-done') }}{{ p.status_label }}</span>{% else %}<span class="unverified">{{ icon('pg-ask') }}{{ p.status_label }}</span>{% endif %}<small>{{ p.time }} · {{ p.duration }} · {{ p.trigger_label }}{% if p.analysis_id %} · 解析 #{{ p.analysis_id }}{% else %} · まだ解析に添えていない{% endif %}</small></p>
+        {% if p.command %}<code class="probe-cmd">$ {{ p.command }}</code>{% endif %}
+        <pre class="probe-out">{{ p.output if p.output else '（出力なし）' }}{% if p.error %}
+（{{ p.error }}）{% endif %}</pre>
+      </div>
+      {% endmacro %}
+      {# 新しい順に 10 件だけ開いて見せる。古いものは折りたたむ（連打で伸びた一覧で画面が重くならないように） #}
+      {% set newest = d.probes[-10:]|reverse|list %}
+      {% set older = d.probes[:-10]|reverse|list %}
+      {% for p in newest %}{{ probe_card(p) }}{% else %}
+      <p class="why">まだ確認していない。推奨する確認の「実行」で取れる。</p>{% endfor %}
+      {% if older %}
+      <details class="probe-old"><summary>古い確認 {{ older|length }} 件</summary>
+      {% for p in older %}{{ probe_card(p) }}{% endfor %}
+      </details>
+      {% endif %}
+      {% if 'reanalyze_with_probes' in d.actions %}
+      <form class="push" hx-post="/incidents/{{ d.id }}/reanalyze_with_probes" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/reanalyze_with_probes">{{ token() }}<button class="btn" type="submit">{{ icon('pg-cycle') }}結果を添えて再解析</button></form>
+      {% endif %}
+    </details>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if d.needs_human_decision %}
+  <section class="sec">
+    <div class="decide"><span class="tile is-brand">{{ icon('pg-sign') }}</span><div><b>要判断</b><span>設定の変更や運用の判断を伴うため、解析は提案までにとどめている。{% if d.unknowns %}不足している情報もあわせて見る。{% endif %}</span></div></div>
+  </section>
+  {% endif %}
+
+  <div class="cols">
+    <section class="sec"><h2 class="sec-h">{{ icon('pg-ask') }}不足している情報</h2><ul class="plain">{% for u in d.unknowns %}<li>{{ u }}</li>{% else %}<li><small>なし</small></li>{% endfor %}</ul></section>
+    <section class="sec"><h2 class="sec-h">{{ icon('pg-clock') }}経過</h2>{% include "partials/timeline.html" %}</section>
+  </div>
+  {% else %}
+  <div class="cols">
+    <section class="sec"><h2 class="sec-h">{{ icon('pg-pulse') }}元のアラート</h2><ul class="plain">{% for a in d.alerts %}<li>{{ a.source|capitalize }} {{ a.external_id }} <small>検知 {{ a.seen }}{% if a.resolved %} · 復旧 {{ a.resolved }}{% endif %}</small></li>{% else %}<li><small>アラートの参照はない</small></li>{% endfor %}</ul></section>
+    <section class="sec"><h2 class="sec-h">{{ icon('pg-clock') }}経過</h2>{% include "partials/timeline.html" %}</section>
+  </div>
+  {% endif %}
+
+  {% if d.member_rows %}
+  <section class="sec"><h2 class="sec-h">{{ icon('pg-layers') }}束ねたインシデント</h2><ul class="plain">{% for m in d.member_rows %}<li><a href="/incidents/{{ m.id }}" hx-get="/partials/incidents/{{ m.id }}" hx-target="#pane" hx-push-url="/incidents/{{ m.id }}">{{ m.host_short }} {{ m.title }}</a> <small>{{ m.time }}{% if d.root_down and loop.first %} 起点{% endif %}</small></li>{% endfor %}</ul></section>
+  {% endif %}
+
+  {% if d.latest %}
+  <section class="sec">
+    <details class="ctx">
+      <summary>{{ icon('pg-layers') }}LLM に渡した文脈を表示</summary>
+      <dl>
+        <dt>モデル</dt><dd>{{ d.latest.model }}</dd>
+        <dt>入力 / 出力</dt><dd>{{ d.latest.prompt_tokens|thousands }} tok / {{ d.latest.completion_tokens|thousands }} tok{% if d.latest.tokens_per_sec %} · {{ d.latest.tokens_per_sec }} tok/s{% endif %}</dd>
+        <dt>知識の束</dt><dd>{{ d.latest.knowledge_version or '—' }}{% if d.context.mode %} · {{ '全文' if d.context.mode == 'full' else '選択' }}{% endif %}</dd>
+        <dt>手順抜粋</dt><dd>{% for s in d.context.selected %}{{ s.heading or s.id }}{% if s.reason %}（{{ s.reason }}）{% endif %}{% if not loop.last %} / {% endif %}{% else %}なし{% endfor %}</dd>
+        <dt>プロンプト</dt><dd>#{{ (d.latest.prompt_hash or '')[:8] }}</dd>
+        {% if d.context.notes %}<dt>注記</dt><dd>{% for n in d.context.notes %}{{ n }}{% if not loop.last %} / {% endif %}{% endfor %}</dd>{% endif %}
+      </dl>
+      {% if d.context.parts %}
+      <details class="ctx-parts"><summary>渡した文を見る</summary>
+        {% for p in d.context.parts %}<h4>{{ p.name }} <span class="mono">{{ p.tokens|thousands }} tok</span></h4><pre>{{ p.text }}</pre>{% endfor %}
+      </details>
+      {% endif %}
+    </details>
+  </section>
+  {% endif %}
+
+  {% if d.analyses|length > 1 %}
+  <section class="sec"><h2 class="sec-h">{{ icon('pg-cycle') }}解析の版</h2><ul class="plain">{% for a in d.analyses %}<li>#{{ a.id }} {{ a.started }} {{ a.trigger }} <small>{{ a.status }}{% if a.error_kind %} · {{ a.error_kind }}: {{ a.error }}{% endif %} · {{ a.duration }}</small></li>{% endfor %}</ul></section>
+  {% endif %}
+
+  {% if d.case %}
+  <div class="decide case-note"><span class="tile is-ok">{{ icon('pg-note') }}</span><div><b>事例として登録済み</b><span>{{ d.case.cause }}</span></div></div>
+  {% elif d.feedback %}
+  <p class="why fb-note">評価: {{ {'helpful': '役に立った', 'wrong': '外れていた', 'corrected': '正しい原因を記入'}[d.feedback.verdict] if d.feedback.verdict in ('helpful', 'wrong', 'corrected') else '' }}{% if d.feedback.note %} · {{ d.feedback.note }}{% endif %}</p>
+  {% endif %}
+
+  <div class="fb" id="actions">
+    {% if 'feedback' in d.actions %}
+    <span>この解析は役に立ちましたか</span>
+    <form hx-post="/incidents/{{ d.id }}/feedback" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/feedback">{{ token() }}<input type="hidden" name="verdict" value="helpful"><button class="btn" type="submit">{{ icon('pg-maru') }}役に立った</button></form>
+    <form hx-post="/incidents/{{ d.id }}/feedback" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/feedback">{{ token() }}<input type="hidden" name="verdict" value="wrong"><button class="btn" type="submit">{{ icon('pg-batsu') }}外れていた</button></form>
+    <details class="inline-form"><summary class="btn ghost">{{ icon('pg-pen') }}正しい原因を記入</summary>
+      <form hx-post="/incidents/{{ d.id }}/feedback" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/feedback">{{ token() }}<input type="hidden" name="verdict" value="corrected"><label>正しい原因<textarea name="note" rows="3" required maxlength="1000"></textarea></label><button class="btn" type="submit">評価を記録する</button></form>
+    </details>
+    {% endif %}
+    {% if 'case' in d.actions %}
+    <button class="btn ghost" type="button" hx-get="/partials/incidents/{{ d.id }}/case-form" hx-target="#case-slot" hx-swap="innerHTML">{{ icon('pg-note') }}{% if d.case %}事例を登録し直す{% else %}事例として登録する{% endif %}</button>
+    {% endif %}
+    {% if 'reanalyze' in d.actions %}
+    <form class="push" hx-post="/incidents/{{ d.id }}/reanalyze" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/reanalyze">{{ token() }}<button class="btn ghost" type="submit">{{ icon('pg-cycle') }}再解析する</button></form>
+    {% endif %}
+    {% if 'prioritize' in d.actions %}
+    <form hx-post="/incidents/{{ d.id }}/prioritize" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/prioritize">{{ token() }}<button class="btn" type="submit">{{ icon('pg-first') }}先に解析する</button></form>
+    {% endif %}
+    {% if 'skip' in d.actions %}
+    <details class="inline-form"><summary class="btn ghost">{{ icon('pg-skip') }}対象外にする</summary>
+      <form hx-post="/incidents/{{ d.id }}/skip" hx-target="#pane" method="post" action="/incidents/{{ d.id }}/skip">{{ token() }}<label>理由<input name="reason" required maxlength="1000"></label><button class="btn" type="submit">対象外にする</button></form>
+    </details>
+    {% endif %}
+  </div>
+  <div id="case-slot"></div>
+</article>

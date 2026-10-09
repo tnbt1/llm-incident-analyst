@@ -1,0 +1,16 @@
+{% set llm = snapshot.llm %}
+{% set kb = snapshot.knowledge %}
+{% set tunnel_down = llm.ok is sameas false and llm.tunnel in ('切断', '未設定') %}
+<div class="health" id="health">
+  <span class="chip{% if llm.ok %} is-ok{% elif llm.ok is sameas false %} is-bad{% endif %}" title="{{ llm.detail }}"><svg class="pg" aria-hidden="true"><use href="#pg-llm"/></svg>LLM <b>{{ llm.label }}</b><span class="mono">{{ cfg.llm_model|replace('example-model/', '') }}</span></span>
+  <span class="chip{% if llm.ok %} is-ok{% elif tunnel_down %} is-bad{% endif %}"><svg class="pg" aria-hidden="true"><use href="#pg-tunnel"/></svg>トンネル <b>{{ llm.tunnel }}</b></span>
+  {% for name, label, icon in (('zabbix', 'Zabbix', 'pg-pulse'), ('wazuh', 'Wazuh', 'pg-shield')) %}
+  {% set item = collectors.get(name) %}
+  <span class="chip{% if item and not item.ok %} is-bad{% endif %}" title="{{ item.detail if item else '' }}"><svg class="pg" aria-hidden="true"><use href="#{{ icon }}"/></svg>{{ label }} 取得 <b>{% if item and item.seconds_since_ok is not none %}{{ item.seconds_since_ok|duration }}前{% else %}未取得{% endif %}</b></span>
+  {% endfor %}
+  <span class="chip{% if kb.loaded and not kb.stale %} is-ok{% elif not kb.loaded %} is-bad{% endif %}" title="{{ kb.detail }}"><svg class="pg" aria-hidden="true"><use href="#pg-card"/></svg>環境カード {% if kb.loaded %}<span class="mono">{{ kb.version }}</span>{% if kb.stale %}<b>要更新</b>{% endif %}{% else %}<b>未配置</b>{% endif %}</span>
+  <button class="theme" type="button" data-theme-toggle aria-label="明るい表示と暗い表示を切り替える" title="表示を切り替える">
+    <svg class="pg pg-light" aria-hidden="true"><use href="#pg-moon"/></svg>
+    <svg class="pg pg-dark" aria-hidden="true"><use href="#pg-sun"/></svg>
+  </button>
+</div>

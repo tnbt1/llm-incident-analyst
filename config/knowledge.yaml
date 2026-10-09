@@ -1,0 +1,51 @@
+# 知識の束の作り方（レシピ）。examples/knowledge-source の見本に合わせてある。自分の運用文書に置き換えて使う。
+# files は読む順に並べる。全文方式の並びと、同点のときの優先順にも使う。
+files:
+  - README.md
+  - architecture.md
+  - registers.md
+  - maintenance.md
+
+# 環境カードに入れる節。見出しは先頭の一致で探す。1 つに決まらなければ生成を失敗させる。
+card:
+  sections:
+    - {file: architecture.md, heading: 構成の要点}
+    - {file: architecture.md, heading: VM台帳}
+    - {file: architecture.md, heading: FWが守る範囲}
+    - {file: architecture.md, heading: 未解決事項}
+    - {file: registers.md, heading: 公開ポート台帳}
+    - {file: registers.md, heading: 管理・内部通信台帳}
+  # 変更履歴の直近 N 日を入れる card.recent_changes もあるが、文書の即時更新を前提にするので既定では使わない
+
+# ホストの正式な名前（監視ツールのホスト名）と、文書の中での呼び方
+hosts:
+  example-router01: [FRR, ルーター VM, ルーターVM, router01, 192.0.2.4]
+  example-app01: [アプリ 01, アプリVM, app01, 192.0.2.6]
+  example-monitor01: [監視VM, 監視 VM, monitor01, Zabbix, Wazuh, Kuma, Netdata, 192.0.2.7, Zabbix server]  # Zabbix の既定のホスト「Zabbix server」は監視 VM で動く
+  example-app02: [アプリ 02, app02, 192.0.2.8]
+  example-app03: [アプリ 03, app03, 192.0.2.9]
+
+# アラートの種類(type-rules.yaml の種類の名前)と、文書の中での言葉
+types:
+  cpu: [CPU, 負荷]
+  mem: [メモリ, OOM]
+  swap: [swap, スワップ]
+  disk: [ディスク, 容量, volume]
+  io: [iowait, I/O]
+  net: [経路, IPsec, 疎通, NAT, DNAT, 着信]
+  container: [Docker, コンテナ, Compose]
+  service: [systemd, サービス, 再起動]
+  auth: [SSH, ログイン, 認証, パスワード]
+  user: [sudo, 権限]
+  file: [syscheck, 設定ファイル]
+  pkg: [apt, パッケージ]
+
+# 解析に向く見出しの言葉。ほかの理由で候補になった節の順位を上げる。
+# ホストが見出しにある節では、そのホストの状態を見る節として、種類や言葉が合わなくても候補にする
+prefer_headings: [状態, 確認, 点検, 切り分け, ログ, 障害]
+
+# 秘密の検査で、確かめた上で通す行。秘密ではないのに検査が止めた行だけを書く。
+# 行は SHA-256 で指す（`tia knowledge build --line-hashes` が表示する）。形や言葉では指せない。
+# 理由は必ず書く。文書の行が変わると当たらなくなり、作るたびに注意が出る。秘密鍵のブロックは通せない。
+#   - {file: maintenance.md, line_sha256: <64 桁>, reason: <秘密ではないと判断した理由>}
+allow_secrets: []

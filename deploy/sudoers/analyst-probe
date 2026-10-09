@@ -1,0 +1,15 @@
+# analyst-probe が sudo -n で動かせる、読み取りだけのコマンド。実行器 /usr/local/lib/analyst-probe/run の表と同じ引数で、
+# 1 文字も違えば通らない。配置のときに @GUARD_TABLE@ と @COMPOSE@ を VM の値で埋め、
+# 役割にない行（docker のない FRR の docker 行、FRR 以外の swanctl と vtysh の行）を落として /etc/sudoers.d/analyst-probe に置く（docs/probes.md）。
+Defaults:analyst-probe env_reset, !lecture
+Cmnd_Alias ANALYST_PROBE_READ = /usr/bin/journalctl -p warning --since -1h --no-pager -o short --no-hostname, \
+    /usr/bin/journalctl _COMM=sshd _COMM=sshd-session --since -24h --no-pager -o short --no-hostname, \
+    /usr/bin/ss -ltnup, \
+    /usr/sbin/nft list chain inet @GUARD_TABLE@ input
+Cmnd_Alias ANALYST_PROBE_DOCKER = /usr/bin/docker compose -f @COMPOSE@ ps -a, \
+    /usr/bin/docker events --since 1h --until 1s
+Cmnd_Alias ANALYST_PROBE_FRR = /usr/sbin/swanctl --list-sas, \
+    /usr/bin/vtysh -c show\ ip\ route\ summary
+analyst-probe ALL=(root) NOPASSWD: ANALYST_PROBE_READ
+analyst-probe ALL=(root) NOPASSWD: ANALYST_PROBE_DOCKER
+analyst-probe ALL=(root) NOPASSWD: ANALYST_PROBE_FRR

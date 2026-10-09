@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="tia-token" content="{{ csrf_token }}">
+<title>{% block title %}{{ system_name }}{% endblock %}</title>
+<script src="/static/theme.js"></script>
+<link rel="stylesheet" href="/static/fonts.css">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+{% include "icons.html" %}
+{% block body %}{% endblock %}
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

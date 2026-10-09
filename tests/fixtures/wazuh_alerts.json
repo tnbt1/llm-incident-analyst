@@ -1,0 +1,11 @@
+[
+  {"_id": "w-001", "_source": {"timestamp": "2026-09-29T05:56:01.000+0000", "agent": {"id": "001", "name": "example-router01"},
+    "rule": {"id": "5712", "level": 10, "description": "sshd: brute force trying to get access to the system.", "groups": ["syslog", "sshd", "authentication_failures"]},
+    "data": {"srcip": "192.0.2.5", "dstuser": "root"}, "full_log": "Failed password for root from 192.0.2.5 port 50122 ssh2"}},
+  {"_id": "w-002", "_source": {"timestamp": "2026-09-29T05:56:21.000+0000", "agent": {"id": "001", "name": "example-router01"},
+    "rule": {"id": "5712", "level": 10, "description": "sshd: brute force trying to get access to the system.", "groups": ["syslog", "sshd", "authentication_failures"]},
+    "data": {"srcip": "192.0.2.5", "dstuser": "root"}, "full_log": "Failed password for root from 192.0.2.5 port 50130 ssh2"}},
+  {"_id": "w-003", "_source": {"timestamp": "2026-09-29T04:05:00.000+0000", "agent": {"id": "001", "name": "example-router01"},
+    "rule": {"id": "550", "level": 7, "description": "Integrity checksum changed.", "groups": ["ossec", "syscheck"]},
+    "syscheck": {"path": "/etc/nftables.conf", "event": "modified"}, "full_log": "File '/etc/nftables.conf' modified"}}
+]

@@ -1,0 +1,71 @@
+# 手元の通し。偽の Zabbix、Wazuh、LLM と、代役の VM（sshd と確認の実行器）に対して、配置用と同じ画像と守りで司令塔を動かす。
+# 使い方は tools/local-stack.sh。秘密は見て分かる偽の値。確認の鍵と代役のホスト鍵は up が secrets/ に作る。
+name: tia-local
+services:
+  vm:
+    build: {context: ../.., dockerfile: deploy/local/Dockerfile.vm}
+    image: llm-incident-analyst-vm:local
+    container_name: tia-local-vm
+    hostname: example-app01
+    volumes:
+      - ./secrets/probe_ssh_key.pub:/tmp/seed/probe_ssh_key.pub:ro
+      - ./secrets/vm_host_key:/tmp/seed/ssh_host_ed25519_key:ro
+    networks:
+      probes: {ipv4_address: 172.28.41.6}
+  fakes:
+    build: {context: ../.., dockerfile: deploy/local/Dockerfile.fakes}
+    image: llm-incident-analyst-fakes:local
+    container_name: tia-local-fakes
+    environment:
+      FAKE_ZABBIX_TOKEN: fake-zabbix-token-for-local-test
+      FAKE_WAZUH_PASSWORD: fake-wazuh-password-for-local-test
+      FAKE_LLM_KEY: fake-openwebui-key-for-local-test
+    volumes: [shared-ca:/shared]
+    ports: ["127.0.0.1:18079:18079"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, sys; sys.exit(0 if os.path.exists('/shared/wazuh-root-ca.pem') else 1)"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+  analyzer:
+    build: {context: ../.., dockerfile: Dockerfile}
+    image: llm-incident-analyst:local
+    container_name: tia-local-analyzer
+    depends_on: {fakes: {condition: service_healthy}}
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    mem_limit: 512m
+    stop_grace_period: 30s
+    environment:
+      TZ: Asia/Tokyo
+      TIA_LLM_URL: http://fakes:18090/openai
+      TIA_ZABBIX_URL: http://fakes:18081/api_jsonrpc.php
+      TIA_WAZUH_URL: https://fakes:19200
+      TIA_WAZUH_USER: analyzer_ro
+      TIA_WAZUH_CA_FILE: /config/ca/wazuh-root-ca.pem
+    secrets: [zabbix_api_token, wazuh_indexer_password, openwebui_api_key, probe_ssh_key]
+    volumes:
+      - ./config:/config:ro
+      - shared-ca:/config/ca:ro
+      - ./secrets/probes_known_hosts:/config/probes_known_hosts:ro
+      - data:/data
+      - backups:/backups
+    networks: [default, probes]
+    ports: ["127.0.0.1:38090:8000"]
+    logging: {driver: json-file, options: {max-size: 10m, max-file: "5"}}
+secrets:
+  zabbix_api_token: {file: ./secrets/zabbix_api_token}
+  wazuh_indexer_password: {file: ./secrets/wazuh_indexer_password}
+  openwebui_api_key: {file: ./secrets/openwebui_api_key}
+  probe_ssh_key: {file: ./secrets/probe_ssh_key}
+networks:
+  default: {}
+  # 代役の VM に固定の番地を与える。カタログ（deploy/local/config/probes.yaml）の ip と同じ
+  probes: {ipam: {config: [{subnet: 172.28.41.0/24}]}}
+volumes:
+  shared-ca: {}
+  data: {}
+  backups: {}

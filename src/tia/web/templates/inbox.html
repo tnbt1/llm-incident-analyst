@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{% if detail %}{{ detail.label }} {{ detail.title }} | {% endif %}{{ system_name }}{% endblock %}
+{% block body %}
+<header class="app-head">
+  <div class="brand">
+    <span class="tile is-ink brand-mark"><svg class="pg" aria-hidden="true"><use href="#pg-scan"/></svg></span>
+    <div><a class="wordmark" href="/">{{ system_name }}</a></div>
+  </div>
+  {% include "partials/health.html" %}
+</header>
+{% include "partials/rail.html" %}
+{% include "partials/band.html" %}
+<main class="inbox">
+{% include "partials/list.html" %}
+<button id="stale" class="stale" type="button" hidden>更新があります。押すと最新を表示する</button>
+<section class="pane" id="pane">
+{% if detail %}{% include "partials/incident.html" %}{% else %}{% include "partials/empty.html" %}{% endif %}
+</section>
+</main>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% macro row(r) %}
+<a class="row{% if r.unread %} is-unread{% endif %}" href="/incidents/{{ r.id }}" hx-get="/partials/incidents/{{ r.id }}" hx-target="#pane" hx-push-url="/incidents/{{ r.id }}" data-id="{{ r.id }}" data-state="{{ r.state }}" aria-selected="{{ 'true' if selected == r.id else 'false' }}">
+  <span class="tile" data-u="{{ r.u }}"><svg class="pg" aria-hidden="true"><use href="#{{ r.icon }}"/></svg>
+    {%- if r.state == 'run' %}<span class="badge" title="解析中"><span class="spin"></span></span>
+    {%- elif r.state == 'wait' %}<span class="badge" title="処理待ち"><svg class="pg" aria-hidden="true"><use href="#pg-wait"/></svg></span>
+    {%- elif r.state == 'fail' %}<span class="badge is-fail" title="解析失敗"><svg class="pg" aria-hidden="true"><use href="#pg-fail"/></svg></span>
+    {%- elif r.state == 'skip' %}<span class="badge" title="対象外"><svg class="pg" aria-hidden="true"><use href="#pg-skip"/></svg></span>{% endif -%}
+  </span>
+  <span class="row-main">
+    <span class="row-top">
+      {%- if r.urgency %}<span class="urg" data-u="{{ r.u }}">{{ r.urgency_label }}</span>{% if r.members %}<span class="src jp">{{ r.members }} 件を束ねた</span>{% else %}<span class="src">{{ r.source_short }}</span>{% endif %}
+      {%- else %}<span class="sev">{{ r.source_label }}</span>{% if r.members %}<span class="src jp">{{ r.members }} 件</span>{% endif %}{% endif -%}
+      <time>{{ r.time }}</time></span>
+    <span class="row-title">{{ r.title }}</span>
+    <span class="row-sub"><span class="host">{{ r.host_short }}</span>{% if r.count > 1 and not r.members %}<span class="more">{{ r.count }} 回</span>{% endif %}
+      {%- if r.live %}<span class="live">{{ r.live }}</span>{% elif r.healed %}<span class="healed">{% if r.problem_status == 'resolved' %}<svg class="pg" aria-hidden="true"><use href="#pg-done"/></svg>{% endif %}{{ r.healed }}</span>{% endif -%}
+      {%- if r.why and r.progress is none %}<span class="why">{{ r.why }}</span>{% endif -%}
+    </span>
+    {% if r.progress is not none %}<span class="meter" data-progress-for="{{ r.id }}"><i style="--p:{{ r.progress }}%"></i></span><span class="row-sub"><span class="why" data-progress-text="{{ r.id }}" data-progress-kind="row">{{ r.why }}</span></span>{% endif %}
+  </span>
+</a>
+{% endmacro %}
+<aside class="list" id="list" aria-label="インシデント一覧" data-day="{{ filters.day_text }}"{% if filters.state %} data-filter="{{ filters.state }}"{% endif %}>
+  {% if filters.host or not filters.today %}
+  <p class="filter-note">{% if not filters.today %}{{ filters.day_text }} の表示{% endif %}{% if filters.host %}{% if not filters.today %} · {% endif %}ホスト {{ filters.host }}{% endif %} <a href="/">絞り込みを外す</a></p>
+  {% endif %}
+  {% for section in sections %}
+  <section class="grp" data-section="{{ section.key }}"{% if section.hidden and not section.rows %} hidden{% endif %}>
+    <h2 class="grp-h">{{ section.title }}<span class="mono">{{ section.count }}</span></h2>
+    {% for r in section.rows %}{{ row(r) }}{% else %}<p class="grp-empty">{{ section.empty_title }}</p>{% endfor %}
+  </section>
+  {% endfor %}
+  <details class="legend">
+    <summary>色と形の見方</summary>
+    <h3>色は緊急度</h3>
+    <ul>
+      <li><span class="tile" data-u="now"></span>今すぐ</li>
+      <li><span class="tile" data-u="today"></span>今日中</li>
+      <li><span class="tile" data-u="watch"></span>経過観察</li>
+      <li><span class="tile" data-u="ignore"></span>無視可</li>
+      <li><span class="tile" data-u="none"></span>解析前</li>
+    </ul>
+    <h3>形は種類</h3>
+    <ul>
+      {% for key, label in (('cpu', 'CPU'), ('mem', 'メモリ'), ('disk', 'ディスク'), ('io', 'I/O'), ('swap', 'スワップ'), ('net', 'ネットワーク'), ('container', 'コンテナ'), ('service', 'サービス'), ('auth', '認証'), ('user', '利用者'), ('file', 'ファイル変更'), ('pkg', 'パッケージ'), ('other', 'その他')) %}
+      <li><span class="tile" data-u="none"><svg class="pg" aria-hidden="true"><use href="#{{ key|icon }}"/></svg></span>{{ label }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+</aside>

@@ -1,0 +1,13 @@
+[
+  {"eventid": "48213", "objectid": "23456", "clock": "1790661060", "severity": "2", "name": "High CPU utilization", "r_eventid": "0", "r_clock": "0",
+   "tags": [{"tag": "component", "value": "cpu"}, {"tag": "scope", "value": "performance"}],
+   "hosts": [{"hostid": "10650", "host": "example-router01", "name": "FRR GW VM"}],
+   "items": [{"itemid": "1", "key_": "system.cpu.util"}]},
+  {"eventid": "48217", "objectid": "23501", "clock": "1790661300", "severity": "2", "name": "Disk space is low", "r_eventid": "0", "r_clock": "0",
+   "tags": [{"tag": "component", "value": "storage"}],
+   "hosts": [{"hostid": "10651", "host": "example-app01", "name": "APP01"}],
+   "items": [{"itemid": "2", "key_": "vfs.fs.size[/,pused]"}]},
+  {"eventid": "48220", "objectid": "23600", "clock": "1790661310", "severity": "1", "name": "Package updates available", "r_eventid": "0", "r_clock": "0",
+   "tags": [], "hosts": [{"hostid": "10652", "host": "example-monitor01", "name": "monitor01"}], "items": []},
+  {"eventid": "broken"}
+]

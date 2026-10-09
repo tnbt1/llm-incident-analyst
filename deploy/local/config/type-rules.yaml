@@ -1,0 +1,33 @@
+# 種類の判定規則。上から順に評価する。
+zabbix:
+  component_tags:
+    cpu: cpu
+    memory: mem
+    storage: disk
+    network: net
+  item_key_prefixes:
+    - ["system.cpu.util[,iowait", io]
+    - ["system.cpu.", cpu]
+    - ["vm.memory.", mem]
+    - ["system.swap.", swap]
+    - ["vfs.fs.", disk]
+    - ["vfs.dev.", io]
+    - ["net.if.", net]
+    - ["icmpping", net]
+    - ["agent.ping", net]
+    - ["docker.", container]
+    - ["proc.", service]
+    - ["systemd.", service]
+wazuh:
+  rule_ids:
+    "100100": service
+    "100101": service
+  groups:
+    - [authentication_failed, auth]
+    - [authentication_failures, auth]
+    - [adduser, user]
+    - [sudo, user]
+    - [sshd, auth]
+    - [syscheck, file]
+    - [dpkg, pkg]
+    - [firewall, net]

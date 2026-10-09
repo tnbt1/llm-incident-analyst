@@ -1,0 +1,1 @@
+<ol class="steps">{% for e in d.events %}<li><b>{{ e.time }}</b>{{ e.label }}{% if e.note %} <small>{{ e.note }}</small>{% endif %}</li>{% endfor %}{% if d.problem_status == 'open' %}<li><b>—</b>未復旧</li>{% endif %}</ol>
